@@ -73,7 +73,7 @@ def main():
     drop_df = drop_columns(df)
     
     ArtUK_main_sample = master_sampled(drop_df)
-    ArtUK_main_sample.to_csv('ArtUK_main_sample.csv', index = False)
+    ArtUK_main_sample.to_csv('ArtUK_main_sample.csv', sep='|', index = False)
 
 
 
