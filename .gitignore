@@ -5,6 +5,9 @@
 *.csv
 *.json
 
+*.jpeg
+art_uk/data/*
+
 # model specific
 *.pb
 *pb*
