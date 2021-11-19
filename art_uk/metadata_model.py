@@ -8,7 +8,8 @@ import itertools
 import string 
 import json 
 import os
-import re 
+import re
+import traceback 
 
 class Metadata:
 
@@ -50,17 +51,23 @@ class Metadata:
 
         def _artwork_title(titles):
             if not titles:
-                return titles 
-            
-            pattern = r'/(\(|(\d+-\d+)\))/gm'
-            titles_arr = []
-            for title in titles:
-                removed_dates = re.sub(pattern, '', title)
-                removed_punctuation = removed_dates.translate(str.maketrans('', '', string.punctuation))
-                titles_arr.append(removed_punctuation.strip())
-            
-            return titles_arr
+                return titles
 
+            #print(titles)
+            
+            removed_dates = ''.join([i for i in titles if not i.isdigit()])
+            print(removed_dates)
+                 
+            removed_punctuation = removed_dates.translate(str.maketrans('', '', string.punctuation))
+            print(removed_punctuation)
+            
+            #return removed_punctuation
+
+            removed_hyphens = removed_punctuation.replace('–', '')
+
+            print(removed_hyphens)
+            return removed_hyphens
+        
         self.metadata[['Linked Terms', 'Linked Topics']] = self.metadata[[
             'Linked Terms', 'Linked Topics']].replace(np.nan, 0)
         
@@ -76,46 +83,58 @@ class Metadata:
         )
         self.metadata['Linked Topics'] = self.metadata['Linked Topics'].apply(_linked_topics)
 
-        # remove the punctation from the title and then strip any leading whitespace
+        #remove the punctation from the title and then strip any leading whitespace
         # self.metadata['Artwork Title'] = self.metadata['Artwork Title'].apply(
-        #     lambda x: x.translate(str.maketrans('', '', string.punctuation)).strip()
+        #     lambda x: x.translate(str.maketrans('', '', string.punctuation)).split()
         # )
         self.metadata['Artwork Title'] = self.metadata['Artwork Title'].apply(_artwork_title)
-
+        
         # create dataset used in the iterator
-        # self.data = {
-        #     file_name: ' '.join(meta).strip()
-        #     for file_name, meta in zip(
-        #         self.metadata['Filename'].values.tolist(), 
-        #         self.metadata[['Artwork Title', 'Linked Terms', 'Linked Topics']].values.tolist()
-        #     )
-        # }
-        try:
-            self.data = {}
-            current_meta = None 
-            current_filename = None 
+        self.data = {
+            file_name: ' '.join(meta).strip()
             for file_name, meta in zip(
                 self.metadata['Filename'].values.tolist(), 
                 self.metadata[['Artwork Title', 'Linked Terms', 'Linked Topics']].values.tolist()
-            ):
-                current_meta = meta 
-                current_filename = file_name
-                self.data[file_name] = ' '.join(meta).strip()
-        except TypeError:
-            print(current_meta)
-            print(current_filename)
-            
+            )
+        }
+        
+        # try:
+        #     self.data = {}
+        #     current_meta = None 
+        #     current_filename = None 
+        #     for file_name, meta in zip(
+        #         self.metadata['Filename'].values.tolist(), 
+        #         self.metadata[['Artwork Title', 'Linked Terms', 'Linked Topics']].values.tolist()
+        #     ):
+        #         current_meta = meta 
+        #         current_filename = file_name
+        #         self.data[file_name] = ' '.join(meta).strip()
+        # except TypeError:
+        #     print(current_meta)
+        #     print(current_filename)
+        #     print(traceback.format_exc())
+          
 def main():
     md = Metadata(
-        metadata = pd.read_csv('data/metadata/artuk-metadata-subset.csv', sep = '|')
+        metadata = pd.read_csv('../data/Art-UK/ArtUK_main_sample.csv', sep = '|')
     )
 
+    #print(md.data['LAN_PSGA_PSGCT_2018_1-001.jpg'], type(md.data['LAN_PSGA_PSGCT_2018_1-001.jpg']))
+
     print(string.punctuation)
-    exit()
+    # exit()
 
     # save the strings produced by the metadata class
-    if not os.path.isfile('data/metadata/metadata_strings.json'):
-        json.dump(md.data, open('data/metadata/metadata_strings.json', 'w'), indent = 4)
+    if not os.path.isfile('../data/Art-UK/metadata_strings.json'):
+        json.dump(md.data, open('../data/Art-UK/metadata_strings.json', 'w'), indent = 4)
+
+    # pass md to word2vec
+
+    # get trained vectors from word2vec (skip-gram)
+
+    # match with metadata ids
+
+    # save as pickle object
 
 
 if __name__ == '__main__':
