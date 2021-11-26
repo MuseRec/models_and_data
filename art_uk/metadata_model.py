@@ -1,15 +1,15 @@
 """
-
+Preprocessing of the ArtUK metadata and gensim model to produce metadata vectors
 """
 
 import pandas as pd 
 import numpy as np 
-import itertools 
 import string 
 import json 
 import os
-import re
-import traceback 
+import gensim.downloader
+import pickle
+
 
 class Metadata:
 
@@ -24,8 +24,8 @@ class Metadata:
     def process_data(self):
 
         def _linked_topics(topics):
-            if not topics:
-                return topics 
+            if isinstance(topics, str) and topics.isspace():
+                return " " 
 
             topics_arr = []
             for topic in topics:
@@ -37,105 +37,119 @@ class Metadata:
                     topics_arr.append(topic.strip())
 
             # join the topics into a single string for downstream usefulness
-            return ' '.join(topics_arr)
+            # hacky method to get rid of the whitespace
+            joined_topics = " ".join(topics_arr)
+
+            # remove punctuation
+            joined_topics = joined_topics.translate(str.maketrans('', '', string.punctuation))
+
+            return " ".join(joined_topics.split())
 
         def _linked_terms(terms):
-            if not terms:
-                return terms
+            if isinstance(terms, str) and terms.isspace():
+                return " "
             
-            terms_arr = [
+            terms_arr = " ".join([
                 term.strip() for term in terms 
-            ]
+            ])
 
-            return ' '.join(terms_arr)
+            # remove punctuation
+            terms_arr = terms_arr.translate(str.maketrans('', '', string.punctuation))
+
+            # hacky method to get rid of the whitespace
+            return " ".join(terms_arr.split())
 
         def _artwork_title(titles):
             if not titles:
-                return titles
+                return " "
 
-            #print(titles)
-            
+            # remove date from title
             removed_dates = ''.join([i for i in titles if not i.isdigit()])
-            print(removed_dates)
-                 
-            removed_punctuation = removed_dates.translate(str.maketrans('', '', string.punctuation))
-            print(removed_punctuation)
-            
-            #return removed_punctuation
 
+            # remove the punctuation in titles  
+            removed_punctuation = removed_dates.translate(str.maketrans('', '', string.punctuation))
+        
+            #return removed_punctuation
             removed_hyphens = removed_punctuation.replace('–', '')
 
-            print(removed_hyphens)
-            return removed_hyphens
+            return " ".join(removed_hyphens.split())
         
         self.metadata[['Linked Terms', 'Linked Topics']] = self.metadata[[
             'Linked Terms', 'Linked Topics']].replace(np.nan, 0)
         
         # Terms
         self.metadata['Linked Terms'] = self.metadata['Linked Terms'].apply(
-            lambda x: x.split(',') if x is not 0 else ''
+            lambda x: x.split(',') if x is not 0 else ' '
         )
         self.metadata['Linked Terms'] = self.metadata['Linked Terms'].apply(_linked_terms)
 
         # Topics
         self.metadata['Linked Topics'] = self.metadata['Linked Topics'].apply(
-            lambda x: x.split(',') if x is not 0 else ''
+            lambda x: x.split(',') if x is not 0 else ' '
         )
         self.metadata['Linked Topics'] = self.metadata['Linked Topics'].apply(_linked_topics)
 
-        #remove the punctation from the title and then strip any leading whitespace
-        # self.metadata['Artwork Title'] = self.metadata['Artwork Title'].apply(
-        #     lambda x: x.translate(str.maketrans('', '', string.punctuation)).split()
-        # )
         self.metadata['Artwork Title'] = self.metadata['Artwork Title'].apply(_artwork_title)
         
         # create dataset used in the iterator
         self.data = {
-            file_name: ' '.join(meta).strip()
+            file_name: " ".join(' '.join(meta).strip().split()).lower()
             for file_name, meta in zip(
                 self.metadata['Filename'].values.tolist(), 
                 self.metadata[['Artwork Title', 'Linked Terms', 'Linked Topics']].values.tolist()
             )
         }
-        
-        # try:
-        #     self.data = {}
-        #     current_meta = None 
-        #     current_filename = None 
-        #     for file_name, meta in zip(
-        #         self.metadata['Filename'].values.tolist(), 
-        #         self.metadata[['Artwork Title', 'Linked Terms', 'Linked Topics']].values.tolist()
-        #     ):
-        #         current_meta = meta 
-        #         current_filename = file_name
-        #         self.data[file_name] = ' '.join(meta).strip()
-        # except TypeError:
-        #     print(current_meta)
-        #     print(current_filename)
-        #     print(traceback.format_exc())
+
           
 def main():
     md = Metadata(
         metadata = pd.read_csv('../data/Art-UK/ArtUK_main_sample.csv', sep = '|')
     )
 
-    #print(md.data['LAN_PSGA_PSGCT_2018_1-001.jpg'], type(md.data['LAN_PSGA_PSGCT_2018_1-001.jpg']))
-
-    print(string.punctuation)
-    # exit()
-
     # save the strings produced by the metadata class
     if not os.path.isfile('../data/Art-UK/metadata_strings.json'):
         json.dump(md.data, open('../data/Art-UK/metadata_strings.json', 'w'), indent = 4)
+    
+    #load pre-trained model (glove-wiki-50)
+    glove_vectors = gensim.downloader.load('glove-wiki-gigaword-100')
 
-    # pass md to word2vec
+    #create a dict to store avergaed vectors in
+    metadata_vectors = {}
 
-    # get trained vectors from word2vec (skip-gram)
+    #iterate over all words (aka values) per key in metadata file
+    for filename, words in md.data.items():
+        artuk_vectors = []
+        
+        for word in words.split(" "): #split by word
+            try: 
+                artuk_vectors.append(glove_vectors.get_vector(word)) #create vector for word
+            except KeyError:
+                #artuk_vectors.append(np.array([]))
+                continue
+                
+        try:
+            artuk_vectors_avg = np.mean(artuk_vectors, axis=1) #calculate word vector avergage per row
+        except np.AxisError:
+            artuk_vectors_avg = []
+         
+        metadata_vectors[filename] = artuk_vectors_avg #save every averaged vector (value) to filename (key)
 
-    # match with metadata ids
+    #little test to check for empty arrays
+    empty_count, non_empty_count = 0, 0
+    len_arr = []
+    for f_name, vectors in metadata_vectors.items():
+        len_arr.append(len(vectors))
+        if len(vectors) == 0:
+            empty_count += 1
+        else:
+            non_empty_count += 1
 
-    # save as pickle object
+    print(empty_count, non_empty_count) 
+    print(np.mean(len_arr), np.std(len_arr))
 
+    #create pickle object to store averaged vectors
+    with open('../data/Art-UK/metadata_vectors.pickle', 'wb') as handle:
+        pickle.dump(metadata_vectors, handle)
 
 if __name__ == '__main__':
     main()
