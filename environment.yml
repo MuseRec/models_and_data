@@ -8,7 +8,6 @@ dependencies:
   - scikit-learn
   - matplotlib
   - scipy
-  - tensorflow-gpu=2.3.0
   - numpy
   - gensim
 prefix: C:\Users\jonat\Anaconda2\envs\museum-ml
