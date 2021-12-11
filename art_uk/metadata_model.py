@@ -10,6 +10,8 @@ import os
 import gensim.downloader
 import pickle
 
+from collections import OrderedDict
+
 
 class Metadata:
 
@@ -115,7 +117,8 @@ def main():
     glove_vectors = gensim.downloader.load('glove-wiki-gigaword-100')
 
     #create a dict to store avergaed vectors in
-    metadata_vectors = {}
+    # metadata_vectors = {}
+    metadata_vectors = OrderedDict()
 
     #iterate over all words (aka values) per key in metadata file
     for filename, words in md.data.items():
