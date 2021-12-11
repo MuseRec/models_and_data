@@ -102,13 +102,14 @@ class Metadata:
 
           
 def main():
+    # ../data/Art-UK/ArtUK_main_sample.csv
     md = Metadata(
-        metadata = pd.read_csv('../data/Art-UK/ArtUK_main_sample.csv', sep = '|')
+        metadata = pd.read_csv('data/metadata/artuk-metadata-subset.csv', sep = '|')
     )
 
     # save the strings produced by the metadata class
-    if not os.path.isfile('../data/Art-UK/metadata_strings.json'):
-        json.dump(md.data, open('../data/Art-UK/metadata_strings.json', 'w'), indent = 4)
+    if not os.path.isfile('data/metadata/metadata_strings.json'):
+        json.dump(md.data, open('data/metadata/metadata_strings.json', 'w'), indent = 4)
     
     #load pre-trained model (glove-wiki-50)
     glove_vectors = gensim.downloader.load('glove-wiki-gigaword-100')
@@ -148,7 +149,7 @@ def main():
     print(np.mean(len_arr), np.std(len_arr))
 
     #create pickle object to store averaged vectors
-    with open('../data/Art-UK/metadata_vectors.pickle', 'wb') as handle:
+    with open('data/metadata/metadata_vectors.pickle', 'wb') as handle:
         pickle.dump(metadata_vectors, handle)
 
 if __name__ == '__main__':
