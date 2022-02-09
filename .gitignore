@@ -9,7 +9,7 @@
 art_uk/data/*
 
 # can add back in if the models aren't too big.
-art_uk//models/*
+art_uk/models/*
 
 # model specific
 *.pb

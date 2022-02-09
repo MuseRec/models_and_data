@@ -29,8 +29,8 @@ def move_files(source_images, source_folder, destination_folder):
         count += 1
 
 def create_split(split = 0.1, validation_pre_computed = False):
-    train_folder = 'data/images/images/train'
-    validation_folder = 'data/images/images/validation'
+    train_folder = 'data/images/images/train/train'
+    validation_folder = 'data/images/images/validation/validation'
     subset_folder = 'data/images/images/subset'
 
     # get all of the images
@@ -72,7 +72,7 @@ def main():
     #     destination_folder = 'data/images/images/subset'
     # )
 
-    create_split()
+    create_split(validation_pre_computed = True)
 
 if __name__ == '__main__':
     main()
