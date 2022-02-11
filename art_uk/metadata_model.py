@@ -136,7 +136,8 @@ def main():
         except np.AxisError:
             artuk_vectors_avg = []
          
-        metadata_vectors[filename] = artuk_vectors_avg #save every averaged vector (value) to filename (key)
+        f_name = filename.split(os.sep)[-1].split('.jpg')[0]
+        metadata_vectors[f_name] = artuk_vectors_avg #save every averaged vector (value) to filename (key)
 
     #little test to check for empty arrays
     empty_count, non_empty_count = 0, 0

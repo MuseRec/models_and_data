@@ -64,7 +64,7 @@ def encoded_images_model():
     # write the normalised vectors to file
     for idx, (f_name, _) in enumerate(image_vectors.copy().items()):
         image_vectors[f_name] = vectors[idx]
-    
+
     p.dump(image_vectors, open('data/images/encoded_imgs_normalised.pickle', 'wb'))
 
     # write the filename order to disk - will probably be useful
@@ -73,21 +73,36 @@ def encoded_images_model():
         open('data/images/encoded_images_order.json', 'w')
     )
 
+    return image_vectors
 
-def concatenated_model(encoded_imgs):
-    # read in the padded metadata vectors
-    # read in the normalised encoded images
-    # iterate over the images
-        # concatenate the image vector with the metadata vector
-    # build the index
-    # write the index to file
-    # save the concatenated vectors
+
+def concatenated_model():
+    # get the metadata vectors
+    metadata_vectors = p.load(open('data/metadata/metadata_vectors_padded.pickle', 'rb'))
+
+    # get the image vectors
+    image_vectors = p.load(open('data/images/encoded_imgs_normalised.pickle', 'rb'))
+
+    # concatenate the vectors
+    concatenated_vectors = {}
+    for f_name, vector in metadata_vectors.items():
+        concatenated_vectors[f_name] = np.concatenate((image_vectors[f_name], vector))
+        
+    # build the index and add the data (537 is the concatenated length)
+    index = f_ai.IndexFlatIP(537)
+    index.add(np.array([vec for _, vec in concatenated_vectors.items()]))
+
+    # write the model to file 
+    f_ai.write_index(index, 'models/faiss_concatenated')
+
+    # write the vectors to file
+    p.dump(concatenated_vectors, open('data/images/concatenated_vectors.pickle', 'wb'))
 
 
 def main():
     # metadata_model()
-    encoded_imgs = encoded_images_model()
-    # concatenated_model(encoded_imgs)
+    # encoded_images_model()
+    concatenated_model()
        
 
 if __name__ == '__main__':
