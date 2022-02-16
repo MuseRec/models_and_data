@@ -88,15 +88,34 @@ def concatenated_model():
     for f_name, vector in metadata_vectors.items():
         concatenated_vectors[f_name] = np.concatenate((image_vectors[f_name], vector))
         
-    # build the index and add the data (537 is the concatenated length)
+    vecs = np.array([vec for _, vec in concatenated_vectors.items()])
+    vecs = np.array([np.expand_dims(vec, axis = 0) for vec in vecs])
+    print(vecs.shape)
+    print(vecs[0].shape)
+    print(vecs[0].T.shape)
+
+    print(vecs.shape)
+    print(vecs[0:2])
+
+    # print(np.expand_dims(vecs[0], axis = 0).shape)
+
+    # print(vecs[0])
+
     index = f_ai.IndexFlatIP(537)
-    index.add(np.array([vec for _, vec in concatenated_vectors.items()]))
+    index.add(vecs)
+
+    print(index.search(vecs[0], k = 5))
+    
+    # x = np.array([[1, 2, 3]])
+    # print(x.shape)
+    # x = np.swapaxes(x, 0, 1)
+    # print(x.shape)
 
     # write the model to file 
-    f_ai.write_index(index, 'models/faiss_concatenated')
+    # f_ai.write_index(index, 'models/faiss_concatenated')
 
     # write the vectors to file
-    p.dump(concatenated_vectors, open('data/images/concatenated_vectors.pickle', 'wb'))
+    # p.dump(concatenated_vectors, open('data/images/concatenated_vectors.pickle', 'wb'))
 
 
 def main():
